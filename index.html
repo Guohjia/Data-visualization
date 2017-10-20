@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>three.js canvas - interactive words</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style rel="stylesheet" type="text/css">
+        body {
+            user-select: none;
+            background-color: #f0f0f0;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #content {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="content"></div>
+    <script src="https://threejs.org/build/three.js"></script>
+    <script src="https://threejs.org/examples/js/renderers/Projector.js"></script>
+    <script src="https://threejs.org/examples/js/renderers/CanvasRenderer.js"></script>
+    <script>
+        //待封装,不同文字大小,不同高度,不同速度处理,判断离开屏幕的条件就不一样
+        //文字翻转
+        var container;
+        var camera, scene, renderer;
+        var words = [];
+        var winWidth = window.innerWidth;
+        var winHeight = window.innerHeight;
+        var textureList = [ "./img/big-d.png", "./img/big-f.png","./img/big-i.png", "./img/big-a.png", "./img/big-l.png", "./img/big-n.png","./img/big-o.png","./img/big-r.png","./img/big-s.png"];
+        var aniControl={num:0};
+        var Animating=true;
+        var geometry = new THREE.BoxGeometry(1, 1, 0);  //3D空间的点集, 把这些点按照正确的顺序连接起来,就形成了3D模型
+        var textureLoader = new THREE.TextureLoader();  //加载器
+        var rotateSpeed=0.03  //加速度设为全局则可控;
+        var wordtype={  //文字信息配置
+            small:{num:5,positionY:38,intervalY:10,positionZ:-30,speed:0.2,positionX:10},
+            big_1:{num:4,positionY:38,intervalY:10,positionZ:2,speed:0.23,positionX:10},
+            big_2:{num:4,positionY:10,intervalY:5,positionZ:30,speed:0.2,positionX:5},
+            big_3:[
+            {positionY:8.5,positionZ:42,positionX:1.5,rotationX:1,rotationZ:10,speed:0.05},
+            {positionY:7.5,positionZ:39,positionX:0.5,rotationX:2,rotationZ:-3,speed:0.05},
+            {positionY:7.2,positionZ:37,positionX:-0.5,rotationX:3,rotationZ:2,speed:0.053},
+            {positionY:5.8,positionZ:45,positionX:-0.3,rotationX:25.5,rotationZ:10,speed:0.06},
+            {positionY:5.2,positionZ:42,positionX:-1.5,rotationX:3,rotationZ:9.8,speed:0.07}
+            ]
+        }
+        
+        init()
+        makeWords(wordtype.small)
+
+        setTimeout(function(){
+            makeWords(wordtype.big_1)
+        },2000)
+
+        setTimeout(function(){
+            makeWords(wordtype.big_2)
+        },5500)
+
+        setTimeout(function(){
+            lastBigwords(wordtype.big_3)
+        },10000)
+        animate()
+        
+     
+        function init() {
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);  //远景相机，视角
+            camera.position.set(0, 0, 50);  //相机观察角度
+            scene = new THREE.Scene();  //场景
+            renderer = new THREE.WebGLRenderer({ alpha: true });   //清楚画布alpha通道
+            renderer.setPixelRatio(window.devicePixelRatio);   //防止在retina等屏幕上出现图像变形等显示问题
+            renderer.setSize(window.innerWidth, window.innerHeight);  //设置画布大小
+            document.getElementById('content').appendChild(renderer.domElement);
+            window.addEventListener('resize', onWindowResize, false);  //响应式设计
+        }
+
+        function makeWords(wordtype){
+            for (var i = 0; i < wordtype.num; i++) {                
+                var textureId = parseInt(Math.random() * 10); //产生0到9的随机数
+                var texture = textureLoader.load(textureList[textureId]);  //加载图片
+                var material = new THREE.MeshBasicMaterial({ map: texture });  //材质
+                var word = new THREE.Mesh(geometry, material);  //为了支持rotation
+                word.position.x = getRandom(-wordtype.positionX,wordtype.positionX)  //确定x的范围
+                word.position.y = wordtype.positionY+= wordtype.intervalY//文字y轴保证间隔
+                word.rotation.z= getRandom(-10,10) //初始化不同的旋转倾斜情况
+                word.rotation.x=Math.random()*6  //初始翻转情况
+                word.position.z=wordtype.positionZ   //控制文字缩放
+                word.speed = wordtype.speed  //最后的大字速度可以是一样的 很快到底部则立刻定住
+                words.push(word);
+                scene.add(word); //为场景添加文字
+            }
+        }
+        //位置写死文字单独处理
+        function lastBigwords(bigwords){  //其中A为特写文字
+            bigwords.map((item,index)=>{
+                let texture = textureLoader.load(textureList[index]);
+                let material = new THREE.MeshBasicMaterial({ map: texture });  
+                let word = new THREE.Mesh(geometry, material);  
+                word.position.x = item.positionX 
+                word.position.y = item.positionY
+                word.position.z=item.positionZ
+                word.rotation.x=item.rotationX 
+                word.rotation.z=item.rotationZ
+                word.speed= item.speed;
+                words.push(word);
+                scene.add(word);
+                finishWord(word)
+            })
+        }
+
+        
+        function render() {
+            for (var i = 0; i < words.length; i++) {
+                words[i].rotation.x += rotateSpeed //翻转
+                words[i].position.y -= words[i].speed;  //加的小数可以控制速度
+            }
+            renderer.render(scene, camera);
+        }
+
+        function animate() {
+            console.log('正在运动')
+            let playing=requestAnimationFrame(animate);
+            if(!Animating){
+                cancelAnimationFrame(playing)
+            }
+            render();
+        }
+
+        function getRandom(n,m,float){
+            return Math.random()*(m-n)+n
+        }
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / winHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, winHeight);
+        }
+
+        function finishWord(word){
+            setTimeout(function(){
+                    word.speed=word.speed/5;
+                    rotateSpeed=rotateSpeed/10;                
+                    setTimeout(function(){
+                        word.speed=word.speed*2.5;
+                        rotateSpeed=rotateSpeed*12
+                        setTimeout(function(){
+                            word.speed=word.speed*4;
+                        },300)
+                        setTimeout(function(){
+                            Animating=false
+                        },2000)
+                    },1000)
+            },1500)
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+        // setTimeout(function(){
+        //     document.querySelector('canvas').remove()
+        // },3000)
+        //文字飘落
+        // var container;
+        // var camera, scene, renderer;
+        // var words = [];
+        // var winWidth = window.innerWidth;
+        // var winHeight = window.innerHeight;
+        // var textureList = ["./img/tiny-f.png", "./img/tiny-e.png", "./img/tiny-n.png", "./img/tiny-r.png", "./img/big-o.png", "./img/big-r.png"];
+        // init()
+        // animate()
+        // // let promise = new Promise(function(resolve, reject) {
+        // //     init()
+        // //     resolve();
+        // //   });
+        // // promise.then(animate);
+        
+        // function init() {
+        //     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);  //远景相机，视角
+        //     camera.position.set(0, 0, 50);  //相机观察角度
+        //     scene = new THREE.Scene();  //场景
+        //     var textureLoader = new THREE.TextureLoader();  //加载器
+        //     var geometry = new THREE.BoxGeometry(1, 1, 0);  //3D空间的点集, 把这些点按照正确的顺序连接起来,就形成了3D模型
+            
+        //     for (var i = 0; i < 100; i++) {
+                
+        //         var textureId = parseInt(Math.random() * 6); //产生0到5的随机数
+        //         var texture = textureLoader.load(textureList[textureId]);  //加载图片
+        //         // var word = new THREE.Sprite( new THREE.SpriteMaterial( { map: texture } ) );  //创建文字,此方法不支持rotation属性
+        //         var material = new THREE.MeshBasicMaterial({ map: texture });  //材质
+        //         var word = new THREE.Mesh(geometry, material);  //为了支持rotation
+
+        //         // temp=new THREE.Object3D();
+        //         // temp.add(word);
+        //         // temp.rotation.y=30;  //这里的效果可以使文字出现在眼前
+
+        //         word.position.x = getRandom(-12,12)  //确定x的范围
+        //         word.position.y = Math.round(Math.random() * winHeight * 1000) % 100 + 25;
+        //         word.position.z = -Math.round(Math.random() * 35)  //随机生成不同距离感的文字,如果距离感有要求,可以人为设置数组,增大期望距离的概率;
+
+        //         word.speed = Math.round(Math.random() * 10) / 50;  //动态开辟属性,初始一个speed可以表现不同的速度,产生超越的现象
+        //         words.push(word);
+        //         scene.add(word); //为场景添加文字
+        //     }
+
+
+        //     renderer = new THREE.WebGLRenderer({ alpha: true });   //清楚画布alpha通道
+        //     renderer.setPixelRatio(window.devicePixelRatio);   //防止在retina等屏幕上出现图像变形等显示问题
+        //     renderer.setSize(window.innerWidth, window.innerHeight);  //设置画布大小
+        //     document.getElementById('content').appendChild(renderer.domElement);
+        //     window.addEventListener('resize', onWindowResize, false);  //响应式设计
+        // }
+
+        // function onWindowResize() {
+        //     camera.aspect = window.innerWidth / winHeight;
+        //     camera.updateProjectionMatrix();
+        //     renderer.setSize(window.innerWidth, winHeight);
+        // }
+
+        // function render() {
+        //     for (var i = 0; i < words.length; i++) {
+        //         /**
+        //          * 速度控制
+        //          * @type {*}
+        //          */
+        //         words[i].rotation.z += 0.03
+        //         words[i].position.y -= words[i].speed + 0.2;  //加的小数可以控制速度
+        //         // words[i].position.z-=0.1 //实现文字逐渐靠近
+
+        //         //动画重复发生
+        //         // if(words[i].position.y<-100||words[i].position.x>50|words[i].position.z>150){
+        //         //     words[i].position.x = -Math.round(Math.random() *winWidth* 1000)%(winWidth);
+        //         //     words[i].position.y = Math.round(Math.random() *winHeight* 1000)%200 +120
+        //         //     words[i].position.z = Math.random() * 5 - 30;
+        //         //     words[i].speed=Math.round(Math.random()*10)/30;
+        //         // }
+        //     }
+        //     renderer.render(scene, camera);
+        // }
+
+        // function animate() {
+        //     requestAnimationFrame(animate);
+        //     render();
+        // }
+
+        // function getRandom(n,m){
+        //     return Math.round(Math.random()*(m-n)+n);
+        // }
+    </script>
+</body>
+
+</html>
