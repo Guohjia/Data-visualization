@@ -23,7 +23,7 @@ label {
 <script>
 
 var n = 4, // The number of series.
-    m = 58; // The number of values per series.
+    m = 58; // 柱状图数量
 
 // The xz array has m elements, representing the x-values shared by all series.
 // The yz array has n elements, representing the y-values of each of the n series.
@@ -124,6 +124,7 @@ function transitionStacked() {
 // Inspired by Lee Byron’s test data generator.
 // http://leebyron.com/streamgraph/
 function bumps(m) {
+  //m=58 =>执行4次
   var values = [], i, j, w, x, y, z;
 
   // Initialize with uniform random values in [0.1, 0.2).
@@ -142,7 +143,7 @@ function bumps(m) {
     }
   }
 
-  // Ensure all values are positive.
+  // 取正
   for (i = 0; i < m; ++i) {
     values[i] = Math.max(0, values[i]);
   }

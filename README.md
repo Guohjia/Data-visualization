@@ -1,5 +1,5 @@
 ## preview:
-### project-three.js
+### three.js
 * [font-animation](https://guohjia.github.io/Data-visualization/threejs/font-animation/)
 
 ### D3.js
