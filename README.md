@@ -1,3 +1,3 @@
-# project-three.js
 ## preview:
-[font-animation](https://guohjia.github.io/project-three.js/font-animation/)
+### project-three.js
+* [font-animation](https://guohjia.github.io/Data-visualization/threejs/font-animation/)
